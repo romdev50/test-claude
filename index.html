@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mon premier site</title>
+  <style>
+    :root {
+      --bg: #f6f3ee;
+      --text: #1f2a2e;
+      --muted: #5b6b70;
+      --accent: #d9572b;
+      --card: #ffffff;
+      --line: #e3ddd3;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14191b;
+        --text: #eef1f2;
+        --muted: #9aa8ac;
+        --accent: #f07a4f;
+        --card: #1d2427;
+        --line: #2c3539;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 20px;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    h1 {
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      line-height: 1.1;
+      margin: 12px 0 16px;
+    }
+    p.lead { font-size: 1.15rem; color: var(--muted); margin: 0 0 40px; }
+    ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    li {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .num {
+      flex: none;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+    }
+    li strong { display: block; }
+    li span.desc { color: var(--muted); font-size: 0.95rem; }
+    footer {
+      margin-top: 48px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    #heure { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="tag">Site de test</span>
+    <h1>Ça marche&nbsp;!</h1>
+    <p class="lead">Cette page est stockée sur GitHub et publiée automatiquement sur internet.</p>
+
+    <ol>
+      <li><span class="num">1</span><div><strong>Le code</strong><span class="desc">Le fichier index.html est rangé dans le dépôt test-claude.</span></div></li>
+      <li><span class="num">2</span><div><strong>La publication</strong><span class="desc">GitHub Pages lit ce fichier et le sert aux visiteurs.</span></div></li>
+      <li><span class="num">3</span><div><strong>La mise à jour</strong><span class="desc">Chaque modification envoyée dans le dépôt met le site à jour en une minute environ.</span></div></li>
+    </ol>
+
+    <footer>Page chargée à <span id="heure">--:--:--</span></footer>
+  </main>
+  <script>
+    document.getElementById('heure').textContent =
+      new Date().toLocaleTimeString('fr-FR');
+  </script>
+</body>
+</html>
