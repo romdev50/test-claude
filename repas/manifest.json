@@ -1,0 +1,14 @@
+{
+  "name": "Repas de la semaine",
+  "short_name": "Repas",
+  "description": "Planifie tes repas et prépare ta liste de courses pour ton drive.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f3ee",
+  "theme_color": "#d9572b",
+  "lang": "fr",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

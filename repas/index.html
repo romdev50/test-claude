@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Repas de la semaine</title>
+  <meta name="description" content="Planifie tes repas de la semaine et génère ta liste de courses pour ton drive.">
+  <meta name="theme-color" content="#d9572b">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Repas">
+  <style>
+    :root {
+      --bg: #f6f3ee;
+      --text: #1f2a2e;
+      --muted: #5b6b70;
+      --accent: #d9572b;
+      --accent-soft: #fbe5dc;
+      --ok: #2f7d4f;
+      --ok-soft: #dcefe3;
+      --card: #ffffff;
+      --line: #e3ddd3;
+      --shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14191b;
+        --text: #eef1f2;
+        --muted: #9aa8ac;
+        --accent: #f07a4f;
+        --accent-soft: #3a2620;
+        --ok: #5cc28a;
+        --ok-soft: #1d3327;
+        --card: #1d2427;
+        --line: #2c3539;
+        --shadow: none;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    }
+    header.top {
+      position: sticky; top: 0; z-index: 5;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+    }
+    header.top h1 { margin: 0; font-size: 1.25rem; }
+    header.top p { margin: 2px 0 0; color: var(--muted); font-size: .85rem; }
+    main { max-width: 760px; margin: 0 auto; padding: 16px; }
+    section.view { display: none; }
+    section.view.active { display: block; }
+
+    h2 { font-size: 1.05rem; margin: 20px 0 10px; }
+    h2:first-child { margin-top: 0; }
+    .muted { color: var(--muted); }
+    .small { font-size: .85rem; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+    }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .grow { flex: 1 1 auto; min-width: 0; }
+    form.row { flex-wrap: nowrap; }
+
+    button, .btn {
+      font: inherit;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 14px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 40px;
+    }
+    button.primary, .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    button.ghost { background: transparent; }
+    button.danger { color: #c0392b; }
+    button.small, .btn.small { padding: 5px 10px; min-height: 32px; font-size: .85rem; }
+    button:disabled { opacity: .5; cursor: default; }
+
+    input, select, textarea {
+      font: inherit;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      min-height: 40px;
+      width: 100%;
+    }
+    textarea { min-height: 100px; resize: vertical; }
+    label.field { display: block; margin-bottom: 12px; }
+    label.field > span { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
+
+    /* chips (toggles) */
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      border-radius: 999px; padding: 6px 12px; min-height: 34px;
+      border: 1px solid var(--line); background: var(--card);
+      font-size: .9rem;
+    }
+    .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+    /* planning */
+    .day h3 { margin: 0 0 8px; font-size: 1rem; }
+    .slot { display: grid; grid-template-columns: 52px 1fr auto; gap: 8px; align-items: center; margin-top: 8px; }
+    .slot .lbl { font-size: .85rem; color: var(--muted); font-weight: 600; }
+    .stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .stepper button { border: 0; border-radius: 0; min-height: 38px; padding: 0 10px; background: transparent; }
+    .stepper span { min-width: 34px; text-align: center; font-variant-numeric: tabular-nums; font-size: .9rem; }
+
+    /* recipes */
+    .recipe-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; }
+    .recipe-item strong { display: block; }
+    .tag { display: inline-block; font-size: .75rem; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 1px 8px; margin-right: 4px; }
+
+    /* ingredient editor rows */
+    .ing-row { display: grid; grid-template-columns: 1fr 70px 80px 34px; gap: 6px; margin-bottom: 6px; }
+    .ing-row select.cat { grid-column: 1 / 4; }
+    .ing-row .del { grid-row: 1 / 3; grid-column: 4; align-self: center; min-height: 34px; padding: 0; }
+    .ing-block { padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px dashed var(--line); }
+
+    /* shopping */
+    .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-bottom: 14px; }
+    .seg button { border: 0; background: transparent; border-radius: 9px; }
+    .seg button[aria-selected="true"] { background: var(--accent); color: #fff; font-weight: 600; }
+    .cat-title { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 6px; font-weight: 700; }
+    .item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+    .item:first-of-type { border-top: 0; }
+    .item .name { font-weight: 600; }
+    .item .qty { font-variant-numeric: tabular-nums; }
+    .item .from { font-size: .78rem; color: var(--muted); }
+    .choice { display: inline-flex; gap: 4px; flex: none; }
+    .choice button { min-height: 36px; padding: 4px 10px; font-size: .85rem; }
+    .choice button.on-have { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); font-weight: 600; }
+    .choice button.on-buy { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+    .item.done .name, .item.done .qty { text-decoration: line-through; opacity: .55; }
+    .item input[type=checkbox] { width: 24px; height: 24px; min-height: 0; flex: none; accent-color: var(--accent); }
+    .empty { text-align: center; color: var(--muted); padding: 28px 12px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .notice { background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; font-size: .9rem; margin-bottom: 12px; }
+
+    /* bottom nav */
+    nav.tabs {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      background: var(--card); border-top: 1px solid var(--line);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    nav.tabs button {
+      border: 0; border-radius: 0; background: transparent;
+      flex-direction: column; gap: 2px; font-size: .75rem; color: var(--muted);
+      min-height: 60px; position: relative;
+    }
+    nav.tabs button .ico { font-size: 1.3rem; line-height: 1; }
+    nav.tabs button[aria-current="page"] { color: var(--accent); font-weight: 700; }
+    .badge { position: absolute; top: 6px; left: calc(50% + 8px); background: var(--accent); color: #fff; border-radius: 999px; font-size: .68rem; padding: 0 6px; min-width: 18px; line-height: 18px; }
+
+    dialog {
+      border: 0; border-radius: 16px; padding: 0;
+      width: min(640px, calc(100vw - 24px));
+      max-height: calc(100dvh - 32px);
+      background: var(--card); color: var(--text);
+    }
+    dialog::backdrop { background: rgba(0,0,0,.45); }
+    dialog .dlg-head { position: sticky; top: 0; background: var(--card); padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; z-index: 1; }
+    dialog .dlg-head h3 { margin: 0; font-size: 1.05rem; }
+    dialog .dlg-body { padding: 16px; }
+    dialog .dlg-foot { position: sticky; bottom: 0; background: var(--card); padding: 12px 16px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+    .toast {
+      position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+      background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px;
+      font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; max-width: calc(100vw - 32px);
+    }
+    .toast.show { opacity: 1; }
+
+    @media (min-width: 700px) {
+      .week { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .week .card { margin-bottom: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <h1 id="title">Planning de la semaine</h1>
+    <p id="subtitle">Choisis tes repas, l'appli prépare ta liste.</p>
+  </header>
+
+  <main>
+    <!-- PLANNING -->
+    <section class="view active" id="view-plan">
+      <div class="card">
+        <h2>Repas à prévoir</h2>
+        <div class="chips" id="meal-toggles"></div>
+        <h2>Jours</h2>
+        <div class="chips" id="day-toggles"></div>
+        <div class="actions">
+          <button id="btn-random">🎲 Compléter au hasard</button>
+          <button id="btn-clear-plan" class="ghost">Vider la semaine</button>
+        </div>
+      </div>
+      <div class="week" id="week"></div>
+    </section>
+
+    <!-- RECETTES -->
+    <section class="view" id="view-recipes">
+      <div class="row" style="margin-bottom:12px">
+        <input type="search" id="recipe-search" class="grow" placeholder="Rechercher une recette…" style="width:auto">
+        <button class="primary" id="btn-new-recipe">+ Nouvelle</button>
+      </div>
+      <div id="recipe-list"></div>
+    </section>
+
+    <!-- COURSES -->
+    <section class="view" id="view-shop">
+      <div class="seg" role="tablist">
+        <button role="tab" id="seg-check" aria-selected="true">1. J'ai déjà ?</button>
+        <button role="tab" id="seg-list" aria-selected="false">2. Ma liste</button>
+      </div>
+      <div id="shop-check"></div>
+      <div id="shop-list" hidden></div>
+    </section>
+
+    <!-- REGLAGES -->
+    <section class="view" id="view-settings">
+      <div class="card">
+        <h2>Mon drive</h2>
+        <label class="field"><span>Enseigne</span>
+          <select id="drive-select"></select>
+        </label>
+        <label class="field" id="custom-drive-wrap" hidden><span>Adresse de recherche (mets <code>{q}</code> à la place du produit)</span>
+          <input id="custom-drive" placeholder="https://www.mondrive.fr/recherche?q={q}">
+        </label>
+        <p class="small muted">Les drives ne proposent pas d'accès public pour remplir un panier automatiquement. L'appli ouvre donc la recherche de chaque produit sur le site du drive (ou dans son appli si elle est installée et associée au site), pour l'ajouter au panier en un geste.</p>
+      </div>
+      <div class="card">
+        <h2>Personnes par repas (par défaut)</h2>
+        <div class="stepper" id="default-people"></div>
+      </div>
+      <div class="card">
+        <h2>Toujours au placard</h2>
+        <p class="small muted">Ces ingrédients sont automatiquement marqués « J'ai déjà ».</p>
+        <div id="pantry-list"></div>
+      </div>
+      <div class="card">
+        <h2>Sauvegarde</h2>
+        <p class="small muted">Tes données restent sur ce téléphone. Exporte-les pour les transférer sur un autre appareil.</p>
+        <div class="actions">
+          <button id="btn-export">⬇️ Exporter</button>
+          <button id="btn-import">⬆️ Importer</button>
+          <input type="file" id="import-file" accept="application/json" hidden>
+          <button id="btn-reset" class="danger ghost">Tout réinitialiser</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-view="plan" aria-current="page"><span class="ico">📅</span>Planning</button>
+    <button data-view="recipes"><span class="ico">📖</span>Recettes</button>
+    <button data-view="shop"><span class="ico">🛒</span>Courses<span class="badge" id="shop-badge" hidden></span></button>
+    <button data-view="settings"><span class="ico">⚙️</span>Réglages</button>
+  </nav>
+
+  <dialog id="dlg"></dialog>
+  <div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ---------- constantes ---------- */
+const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+const MEALS = { midi: 'Midi', soir: 'Soir' };
+const CATS = ['Fruits & légumes', 'Boucherie & poisson', 'Crèmerie & œufs', 'Épicerie', 'Pain & boulangerie', 'Surgelés', 'Boissons', 'Maison & hygiène', 'Autre'];
+const UNITS = ['', 'g', 'kg', 'ml', 'cl', 'l', 'c. à soupe', 'c. à café', 'pièce', 'tranche', 'gousse', 'boîte', 'sachet', 'pincée'];
+const DRIVES = {
+  leclerc:     { name: 'E.Leclerc Drive', home: 'https://www.e.leclerc/', search: 'https://www.e.leclerc/recherche?q={q}' },
+  carrefour:   { name: 'Carrefour Drive', home: 'https://www.carrefour.fr/', search: 'https://www.carrefour.fr/s?q={q}' },
+  auchan:      { name: 'Auchan Drive', home: 'https://www.auchan.fr/', search: 'https://www.auchan.fr/recherche?text={q}' },
+  intermarche: { name: 'Intermarché Drive', home: 'https://www.intermarche.com/', search: 'https://www.intermarche.com/recherche/{q}' },
+  coursesu:    { name: 'Courses U (Super U)', home: 'https://www.coursesu.com/', search: 'https://www.coursesu.com/recherche?q={q}' },
+  monoprix:    { name: 'Monoprix', home: 'https://courses.monoprix.fr/', search: 'https://courses.monoprix.fr/search?q={q}' },
+  chronodrive: { name: 'Chronodrive', home: 'https://www.chronodrive.com/', search: 'https://www.chronodrive.com/search/{q}' },
+  custom:      { name: 'Autre (adresse personnalisée)', home: '', search: '' },
+};
+const PIECE_UNITS = new Set(['', 'pièce', 'tranche', 'gousse', 'boîte', 'sachet']);
+
+const DEFAULT_RECIPES = [
+  { name: 'Pâtes à la bolognaise', servings: 4, tags: ['rapide'], ingredients: [
+    ['pâtes', 400, 'g', 'Épicerie'], ['bœuf haché', 400, 'g', 'Boucherie & poisson'], ['coulis de tomate', 500, 'g', 'Épicerie'],
+    ['oignon', 1, 'pièce', 'Fruits & légumes'], ['carotte', 1, 'pièce', 'Fruits & légumes'], ['ail', 1, 'gousse', 'Fruits & légumes'],
+    ['parmesan', 50, 'g', 'Crèmerie & œufs'], ['huile d\'olive', 2, 'c. à soupe', 'Épicerie']],
+    steps: 'Émincer oignon, carotte et ail, les faire revenir dans l\'huile.\nAjouter la viande, faire dorer.\nVerser le coulis, laisser mijoter 20 min.\nCuire les pâtes, servir avec le parmesan.' },
+  { name: 'Poulet au curry et riz', servings: 4, tags: [], ingredients: [
+    ['blanc de poulet', 600, 'g', 'Boucherie & poisson'], ['riz basmati', 300, 'g', 'Épicerie'], ['lait de coco', 400, 'ml', 'Épicerie'],
+    ['oignon', 1, 'pièce', 'Fruits & légumes'], ['curry en poudre', 2, 'c. à soupe', 'Épicerie'], ['huile d\'olive', 1, 'c. à soupe', 'Épicerie']],
+    steps: 'Faire revenir l\'oignon puis le poulet en morceaux.\nAjouter le curry puis le lait de coco, mijoter 15 min.\nServir avec le riz.' },
+  { name: 'Quiche lorraine', servings: 4, tags: ['four'], ingredients: [
+    ['pâte brisée', 1, 'pièce', 'Crèmerie & œufs'], ['lardons', 200, 'g', 'Boucherie & poisson'], ['œufs', 3, 'pièce', 'Crèmerie & œufs'],
+    ['crème fraîche', 20, 'cl', 'Crèmerie & œufs'], ['lait', 20, 'cl', 'Crèmerie & œufs'], ['gruyère râpé', 70, 'g', 'Crèmerie & œufs'],
+    ['salade verte', 1, 'pièce', 'Fruits & légumes']],
+    steps: 'Préchauffer le four à 200 °C.\nFaire dorer les lardons.\nBattre œufs, crème et lait, ajouter lardons et gruyère.\nVerser sur la pâte, cuire 35 min. Servir avec la salade.' },
+  { name: 'Salade niçoise', servings: 2, tags: ['rapide', 'été'], ingredients: [
+    ['thon en boîte', 1, 'boîte', 'Épicerie'], ['tomates', 3, 'pièce', 'Fruits & légumes'], ['œufs', 2, 'pièce', 'Crèmerie & œufs'],
+    ['haricots verts', 200, 'g', 'Fruits & légumes'], ['olives noires', 50, 'g', 'Épicerie'], ['salade verte', 1, 'pièce', 'Fruits & légumes'],
+    ['huile d\'olive', 2, 'c. à soupe', 'Épicerie']],
+    steps: 'Cuire les œufs durs (10 min) et les haricots verts.\nDisposer salade, tomates, haricots, thon, olives et œufs.\nAssaisonner.' },
+  { name: 'Chili con carne', servings: 4, tags: [], ingredients: [
+    ['bœuf haché', 500, 'g', 'Boucherie & poisson'], ['haricots rouges', 1, 'boîte', 'Épicerie'], ['tomates concassées', 1, 'boîte', 'Épicerie'],
+    ['oignon', 1, 'pièce', 'Fruits & légumes'], ['poivron', 1, 'pièce', 'Fruits & légumes'], ['épices chili', 1, 'c. à soupe', 'Épicerie'],
+    ['riz basmati', 250, 'g', 'Épicerie']],
+    steps: 'Faire revenir oignon et poivron, puis la viande.\nAjouter tomates, haricots égouttés et épices.\nMijoter 30 min, servir avec le riz.' },
+  { name: 'Saumon, riz et brocolis', servings: 2, tags: ['léger'], ingredients: [
+    ['pavé de saumon', 2, 'pièce', 'Boucherie & poisson'], ['riz basmati', 150, 'g', 'Épicerie'], ['brocoli', 1, 'pièce', 'Fruits & légumes'],
+    ['citron', 1, 'pièce', 'Fruits & légumes']],
+    steps: 'Cuire le riz et les brocolis à la vapeur.\nPoêler le saumon 4 min de chaque côté.\nArroser de citron.' },
+  { name: 'Soupe de légumes', servings: 4, tags: ['hiver', 'léger'], ingredients: [
+    ['pommes de terre', 400, 'g', 'Fruits & légumes'], ['carotte', 3, 'pièce', 'Fruits & légumes'], ['poireau', 2, 'pièce', 'Fruits & légumes'],
+    ['oignon', 1, 'pièce', 'Fruits & légumes'], ['bouillon de légumes', 1, 'pièce', 'Épicerie'], ['pain', 1, 'pièce', 'Pain & boulangerie']],
+    steps: 'Éplucher et couper les légumes.\nLes couvrir d\'eau avec le bouillon, cuire 30 min.\nMixer et servir avec du pain.' },
+  { name: 'Omelette et salade', servings: 2, tags: ['rapide'], ingredients: [
+    ['œufs', 4, 'pièce', 'Crèmerie & œufs'], ['champignons de Paris', 150, 'g', 'Fruits & légumes'], ['gruyère râpé', 40, 'g', 'Crèmerie & œufs'],
+    ['salade verte', 1, 'pièce', 'Fruits & légumes'], ['beurre', 10, 'g', 'Crèmerie & œufs']],
+    steps: 'Poêler les champignons au beurre.\nBattre les œufs, verser, ajouter le gruyère.\nServir avec la salade.' },
+  { name: 'Gratin dauphinois et jambon', servings: 4, tags: ['four', 'hiver'], ingredients: [
+    ['pommes de terre', 1, 'kg', 'Fruits & légumes'], ['crème fraîche', 30, 'cl', 'Crèmerie & œufs'], ['lait', 50, 'cl', 'Crèmerie & œufs'],
+    ['ail', 1, 'gousse', 'Fruits & légumes'], ['jambon blanc', 4, 'tranche', 'Boucherie & poisson']],
+    steps: 'Préchauffer le four à 180 °C.\nCouper les pommes de terre en fines rondelles.\nFrotter le plat à l\'ail, alterner couches de pommes de terre et mélange lait-crème.\nCuire 1 h. Servir avec le jambon.' },
+];
+
+/* ---------- état ---------- */
+const STORE_KEY = 'repas-semaine-v1';
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+function defaultState() {
+  return {
+    settings: { meals: { midi: true, soir: true }, days: [true, true, true, true, true, true, true], people: 2, drive: 'leclerc', customDrive: '' },
+    recipes: DEFAULT_RECIPES.map(r => ({
+      id: uid(), name: r.name, servings: r.servings, tags: r.tags, steps: r.steps,
+      ingredients: r.ingredients.map(([name, qty, unit, cat]) => ({ name, qty, unit, cat })),
+    })),
+    plan: {},       // "0-midi" -> { recipeId, people }
+    checks: {},     // clé ingrédient -> 'have' | 'buy'
+    pantry: ['sel', 'poivre'],
+    extras: [],     // { id, name, cat }
+    cart: {},       // clé -> true quand c'est dans le panier
+  };
+}
+
+let state;
+try {
+  state = JSON.parse(localStorage.getItem(STORE_KEY)) || defaultState();
+} catch (e) { state = defaultState(); }
+state = Object.assign(defaultState(), state);
+
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* stockage indisponible */ }
+}
+
+/* ---------- utilitaires ---------- */
+const $ = sel => document.querySelector(sel);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = s => String(s || '').trim().toLowerCase();
+const recipeById = id => state.recipes.find(r => r.id === id);
+
+function fmtQty(q, unit) {
+  if (!q) return unit || '';
+  const n = Math.round(q * 100) / 100;
+  const txt = n.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  if (!unit || unit === 'pièce') return txt;
+  return `${txt} ${unit}`;
+}
+
+function roundForBuying(q, unit) {
+  if (PIECE_UNITS.has(unit)) return Math.ceil(q - 0.001);
+  if (['g', 'ml'].includes(unit)) return q >= 50 ? Math.round(q / 10) * 10 : Math.round(q);
+  if (unit === 'cl') return Math.round(q);
+  return Math.round(q * 10) / 10;
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function stepperHTML(value, id) {
+  return `<span class="stepper" data-stepper="${id}"><button type="button" data-d="-1" aria-label="Moins">−</button><span>${value} 👤</span><button type="button" data-d="1" aria-label="Plus">+</button></span>`;
+}
+
+/* ---------- planning ---------- */
+function activeSlots() {
+  const out = [];
+  state.settings.days.forEach((on, d) => {
+    if (!on) return;
+    Object.keys(MEALS).forEach(m => { if (state.settings.meals[m]) out.push({ d, m, key: `${d}-${m}` }); });
+  });
+  return out;
+}
+
+function renderPlan() {
+  $('#meal-toggles').innerHTML = Object.entries(MEALS).map(([k, v]) =>
+    `<button class="chip" data-meal="${k}" aria-pressed="${state.settings.meals[k]}">${v}</button>`).join('');
+  $('#day-toggles').innerHTML = DAYS.map((d, i) =>
+    `<button class="chip" data-day="${i}" aria-pressed="${state.settings.days[i]}">${d.slice(0, 3)}</button>`).join('');
+
+  const options = state.recipes.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+    .map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join('');
+
+  const meals = Object.keys(MEALS).filter(m => state.settings.meals[m]);
+  const days = DAYS.map((name, d) => ({ name, d })).filter(x => state.settings.days[x.d]);
+
+  if (!meals.length || !days.length) {
+    $('#week').innerHTML = `<div class="empty">Active au moins un repas et un jour pour commencer.</div>`;
+    return;
+  }
+
+  $('#week').innerHTML = days.map(({ name, d }) => `
+    <div class="card day">
+      <h3>${name}</h3>
+      ${meals.map(m => {
+        const key = `${d}-${m}`;
+        const slot = state.plan[key] || {};
+        return `<div class="slot">
+          <span class="lbl">${MEALS[m]}</span>
+          <select data-slot="${key}" aria-label="${name} ${MEALS[m]}">
+            <option value="">— Pas de repas —</option>${options}
+          </select>
+          ${stepperHTML(slot.people || state.settings.people, 'slot:' + key)}
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+
+  document.querySelectorAll('select[data-slot]').forEach(sel => {
+    const slot = state.plan[sel.dataset.slot];
+    sel.value = slot && recipeById(slot.recipeId) ? slot.recipeId : '';
+  });
+}
+
+$('#view-plan').addEventListener('click', e => {
+  const meal = e.target.closest('[data-meal]');
+  const day = e.target.closest('[data-day]');
+  if (meal) { state.settings.meals[meal.dataset.meal] = !state.settings.meals[meal.dataset.meal]; save(); renderAll(); }
+  if (day) { const i = +day.dataset.day; state.settings.days[i] = !state.settings.days[i]; save(); renderAll(); }
+});
+
+$('#view-plan').addEventListener('change', e => {
+  const sel = e.target.closest('select[data-slot]');
+  if (!sel) return;
+  const key = sel.dataset.slot;
+  if (sel.value) state.plan[key] = { recipeId: sel.value, people: state.plan[key]?.people || state.settings.people };
+  else delete state.plan[key];
+  save(); renderBadge(); renderShop();
+});
+
+$('#btn-random').addEventListener('click', () => {
+  if (!state.recipes.length) return toast('Ajoute d\'abord des recettes');
+  const slots = activeSlots().filter(s => !state.plan[s.key]);
+  if (!slots.length) return toast('Tous les repas sont déjà choisis');
+  let pool = [];
+  slots.forEach(s => {
+    if (!pool.length) pool = state.recipes.map(r => r.id).sort(() => Math.random() - .5);
+    state.plan[s.key] = { recipeId: pool.pop(), people: state.settings.people };
+  });
+  save(); renderAll(); toast(`${slots.length} repas ajoutés`);
+});
+
+$('#btn-clear-plan').addEventListener('click', () => {
+  if (!confirm('Vider le planning et la liste de courses de la semaine ?')) return;
+  state.plan = {}; state.checks = {}; state.cart = {}; state.extras = [];
+  save(); renderAll();
+});
+
+/* stepper générique */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-stepper] button');
+  if (!btn) return;
+  const id = btn.parentElement.dataset.stepper;
+  const d = +btn.dataset.d;
+  if (id === 'default') {
+    state.settings.people = Math.max(1, Math.min(20, state.settings.people + d));
+  } else if (id.startsWith('slot:')) {
+    const key = id.slice(5);
+    const cur = state.plan[key]?.people || state.settings.people;
+    const next = Math.max(1, Math.min(20, cur + d));
+    if (state.plan[key]) state.plan[key].people = next;
+    else { toast('Choisis d\'abord une recette'); return; }
+  } else if (id === 'dlg') {
+    const span = btn.parentElement.querySelector('span');
+    const v = Math.max(1, Math.min(30, (+span.dataset.v || 1) + d));
+    span.dataset.v = v; span.textContent = `${v} 👤`;
+    return;
+  }
+  save(); renderAll();
+});
+
+/* ---------- recettes ---------- */
+function renderRecipes() {
+  const q = norm($('#recipe-search').value);
+  const usage = {};
+  Object.values(state.plan).forEach(s => usage[s.recipeId] = (usage[s.recipeId] || 0) + 1);
+  const list = state.recipes
+    .filter(r => !q || norm(r.name).includes(q) || r.ingredients.some(i => norm(i.name).includes(q)))
+    .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  $('#recipe-list').innerHTML = list.length ? list.map(r => `
+    <div class="card recipe-item" data-recipe="${r.id}">
+      <div class="grow">
+        <strong>${esc(r.name)}</strong>
+        <span class="small muted">${r.servings} pers. · ${r.ingredients.length} ingrédients</span>
+        <div>${(r.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+      </div>
+      ${usage[r.id] ? `<span class="tag">×${usage[r.id]} cette semaine</span>` : ''}
+      <span class="muted">›</span>
+    </div>`).join('') : `<div class="empty">Aucune recette trouvée.</div>`;
+}
+
+$('#recipe-search').addEventListener('input', renderRecipes);
+$('#recipe-list').addEventListener('click', e => {
+  const el = e.target.closest('[data-recipe]');
+  if (el) showRecipe(el.dataset.recipe);
+});
+$('#btn-new-recipe').addEventListener('click', () => editRecipe(null));
+
+const dlg = $('#dlg');
+function openDialog(html) {
+  dlg.innerHTML = html;
+  if (!dlg.open) dlg.showModal();
+  dlg.scrollTop = 0;
+}
+dlg.addEventListener('click', e => {
+  if (e.target === dlg || e.target.closest('[data-close]')) dlg.close();
+});
+
+function showRecipe(id) {
+  const r = recipeById(id);
+  if (!r) return;
+  openDialog(`
+    <div class="dlg-head"><h3>${esc(r.name)}</h3><button class="ghost small" data-close aria-label="Fermer">✕</button></div>
+    <div class="dlg-body">
+      <p class="muted small">Pour ${r.servings} personne${r.servings > 1 ? 's' : ''}</p>
+      <h2>Ingrédients</h2>
+      <ul>${r.ingredients.map(i => `<li>${esc(fmtQty(i.qty, i.unit))} ${esc(i.name)}</li>`).join('')}</ul>
+      ${r.steps ? `<h2>Préparation</h2><ol>${r.steps.split('\n').filter(Boolean).map(s => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}
+    </div>
+    <div class="dlg-foot">
+      <button class="danger ghost" id="r-del">Supprimer</button>
+      <button id="r-dup">Dupliquer</button>
+      <button class="primary" id="r-edit">Modifier</button>
+    </div>`);
+  $('#r-edit').onclick = () => editRecipe(id);
+  $('#r-dup').onclick = () => {
+    const copy = JSON.parse(JSON.stringify(r)); copy.id = uid(); copy.name += ' (copie)';
+    state.recipes.push(copy); save(); renderAll(); editRecipe(copy.id);
+  };
+  $('#r-del').onclick = () => {
+    if (!confirm(`Supprimer « ${r.name} » ?`)) return;
+    state.recipes = state.recipes.filter(x => x.id !== id);
+    Object.keys(state.plan).forEach(k => { if (state.plan[k].recipeId === id) delete state.plan[k]; });
+    save(); dlg.close(); renderAll();
+  };
+}
+
+function ingRowHTML(i = {}) {
+  return `<div class="ing-block"><div class="ing-row">
+    <input class="i-name" placeholder="Ingrédient" value="${esc(i.name)}" list="ing-names">
+    <input class="i-qty" type="number" inputmode="decimal" step="any" min="0" placeholder="Qté" value="${i.qty ?? ''}">
+    <select class="i-unit">${UNITS.map(u => `<option value="${esc(u)}" ${u === (i.unit || '') ? 'selected' : ''}>${u || 'unité'}</option>`).join('')}</select>
+    <button type="button" class="del ghost" aria-label="Retirer">✕</button>
+    <select class="i-cat cat">${CATS.map(c => `<option ${c === (i.cat || 'Autre') ? 'selected' : ''}>${c}</option>`).join('')}</select>
+  </div></div>`;
+}
+
+function knownIngredients() {
+  const map = new Map();
+  state.recipes.forEach(r => r.ingredients.forEach(i => map.set(norm(i.name), i)));
+  return map;
+}
+
+function editRecipe(id) {
+  const r = id ? recipeById(id) : { name: '', servings: state.settings.people, tags: [], steps: '', ingredients: [{}] };
+  const known = knownIngredients();
+  openDialog(`
+    <div class="dlg-head"><h3>${id ? 'Modifier la recette' : 'Nouvelle recette'}</h3><button class="ghost small" data-close aria-label="Fermer">✕</button></div>
+    <form class="dlg-body" id="r-form">
+      <label class="field"><span>Nom</span><input id="f-name" required value="${esc(r.name)}" placeholder="Ex. : Lasagnes maison"></label>
+      <div class="row" style="margin-bottom:12px">
+        <span class="muted small">Pour</span> ${stepperHTML(r.servings, 'dlg').replace('<span>', `<span data-v="${r.servings}" id="f-serv">`)}
+      </div>
+      <label class="field"><span>Étiquettes (séparées par des virgules)</span><input id="f-tags" value="${esc((r.tags || []).join(', '))}" placeholder="rapide, végétarien…"></label>
+      <h2>Ingrédients</h2>
+      <datalist id="ing-names">${[...known.values()].map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>
+      <div id="f-ings">${r.ingredients.map(ingRowHTML).join('')}</div>
+      <button type="button" id="f-add-ing" class="small">+ Ingrédient</button>
+      <h2>Préparation</h2>
+      <textarea id="f-steps" placeholder="Une étape par ligne">${esc(r.steps)}</textarea>
+    </form>
+    <div class="dlg-foot">
+      <button data-close class="ghost">Annuler</button>
+      <button class="primary" id="f-save">Enregistrer</button>
+    </div>`);
+
+  const ings = $('#f-ings');
+  $('#f-add-ing').onclick = () => { ings.insertAdjacentHTML('beforeend', ingRowHTML()); ings.lastElementChild.querySelector('.i-name').focus(); };
+  ings.addEventListener('click', e => { if (e.target.closest('.del')) e.target.closest('.ing-block').remove(); });
+  // reprend unité et rayon d'un ingrédient déjà connu
+  ings.addEventListener('change', e => {
+    if (!e.target.classList.contains('i-name')) return;
+    const k = known.get(norm(e.target.value));
+    if (!k) return;
+    const row = e.target.closest('.ing-row');
+    if (!row.querySelector('.i-qty').value) row.querySelector('.i-unit').value = k.unit || '';
+    row.querySelector('.i-cat').value = k.cat || 'Autre';
+  });
+
+  $('#f-save').onclick = () => {
+    const name = $('#f-name').value.trim();
+    if (!name) { $('#f-name').focus(); return toast('Donne un nom à la recette'); }
+    const ingredients = [...ings.querySelectorAll('.ing-row')].map(row => ({
+      name: row.querySelector('.i-name').value.trim(),
+      qty: parseFloat(String(row.querySelector('.i-qty').value).replace(',', '.')) || 0,
+      unit: row.querySelector('.i-unit').value,
+      cat: row.querySelector('.i-cat').value,
+    })).filter(i => i.name);
+    const data = {
+      name,
+      servings: +$('#f-serv').dataset.v || 1,
+      tags: $('#f-tags').value.split(',').map(t => t.trim()).filter(Boolean),
+      steps: $('#f-steps').value.trim(),
+      ingredients,
+    };
+    if (id) Object.assign(recipeById(id), data);
+    else state.recipes.push({ id: uid(), ...data });
+    save(); dlg.close(); renderAll(); toast('Recette enregistrée');
+  };
+}
+
+/* ---------- courses ---------- */
+function computeNeeds() {
+  const map = new Map();
+  Object.entries(state.plan).forEach(([key, slot]) => {
+    const [d, m] = key.split('-');
+    if (!state.settings.days[+d] || !state.settings.meals[m]) return; // repas désactivé
+    const r = recipeById(slot.recipeId);
+    if (!r) return;
+    const factor = (slot.people || state.settings.people) / (r.servings || 1);
+    r.ingredients.forEach(i => {
+      const k = norm(i.name) + '|' + (i.unit || '');
+      const cur = map.get(k) || { key: k, name: i.name, unit: i.unit || '', cat: i.cat || 'Autre', qty: 0, from: new Set() };
+      cur.qty += (i.qty || 0) * factor;
+      cur.from.add(`${r.name} (${DAYS[+d].slice(0, 3)} ${MEALS[m].toLowerCase()})`);
+      map.set(k, cur);
+    });
+  });
+  const pantry = new Set(state.pantry.map(norm));
+  return [...map.values()].map(x => ({
+    ...x,
+    qty: roundForBuying(x.qty, x.unit),
+    inPantry: pantry.has(norm(x.name)),
+    status: pantry.has(norm(x.name)) ? (state.checks[x.key] || 'have') : state.checks[x.key],
+  }));
+}
+
+function groupByCat(items) {
+  const g = {};
+  items.forEach(i => (g[i.cat] = g[i.cat] || []).push(i));
+  return CATS.filter(c => g[c]).map(c => [c, g[c].sort((a, b) => a.name.localeCompare(b.name, 'fr'))]);
+}
+
+function shoppingItems() {
+  const needs = computeNeeds().filter(i => i.status === 'buy');
+  const extras = state.extras.map(e => ({ key: 'x:' + e.id, name: e.name, unit: '', qty: 0, cat: e.cat || 'Autre', extra: true, id: e.id, from: new Set() }));
+  return [...needs, ...extras];
+}
+
+function driveUrl(product) {
+  const d = DRIVES[state.settings.drive] || DRIVES.leclerc;
+  const tpl = state.settings.drive === 'custom' ? state.settings.customDrive : d.search;
+  if (!tpl || !tpl.includes('{q}')) return null;
+  return tpl.replace('{q}', encodeURIComponent(product));
+}
+function driveHome() {
+  if (state.settings.drive === 'custom') {
+    try { return new URL(state.settings.customDrive).origin; } catch (e) { return null; }
+  }
+  return (DRIVES[state.settings.drive] || DRIVES.leclerc).home;
+}
+
+let shopTab = 'check';
+function renderShop() {
+  const needs = computeNeeds();
+  const pending = needs.filter(i => !i.status).length;
+
+  $('#seg-check').textContent = `1. J'ai déjà ?${pending ? ` (${pending})` : ''}`;
+  const items = shoppingItems();
+  const remaining = items.filter(i => !state.cart[i.key]).length;
+  $('#seg-list').textContent = `2. Ma liste (${remaining})`;
+  $('#seg-check').setAttribute('aria-selected', shopTab === 'check');
+  $('#seg-list').setAttribute('aria-selected', shopTab === 'list');
+  $('#shop-check').hidden = shopTab !== 'check';
+  $('#shop-list').hidden = shopTab !== 'list';
+
+  /* étape 1 : vérification */
+  if (!needs.length) {
+    $('#shop-check').innerHTML = `<div class="empty">Aucun repas planifié.<br>Va dans <b>Planning</b> pour choisir tes recettes.</div>`;
+  } else {
+    $('#shop-check').innerHTML = `
+      <div class="notice">Pour chaque ingrédient, indique si tu l'as déjà. Seuls ceux marqués <b>À acheter</b> iront dans ta liste.</div>
+      <div class="actions">
+        <button class="small" id="all-buy" ${pending ? '' : 'disabled'}>Le reste → À acheter</button>
+        <button class="small ghost" id="reset-checks">Tout redécider</button>
+      </div>
+      ${groupByCat(needs).map(([cat, list]) => `
+        <div class="cat-title">${cat}</div>
+        <div class="card" style="padding:4px 14px">
+          ${list.map(i => `<div class="item">
+            <div class="grow">
+              <div><span class="name">${esc(i.name)}</span> · <span class="qty">${esc(fmtQty(i.qty, i.unit))}</span></div>
+              <div class="from">${esc([...i.from].join(', '))}${i.inPantry ? ' · 📌 toujours au placard' : ''}</div>
+            </div>
+            <div class="choice">
+              <button data-check="${esc(i.key)}" data-v="have" class="${i.status === 'have' ? 'on-have' : ''}" aria-pressed="${i.status === 'have'}">✓ J'ai</button>
+              <button data-check="${esc(i.key)}" data-v="buy" class="${i.status === 'buy' ? 'on-buy' : ''}" aria-pressed="${i.status === 'buy'}">🛒 Acheter</button>
+            </div>
+          </div>`).join('')}
+        </div>`).join('')}
+      ${pending ? '' : `<div class="actions"><button class="primary" id="go-list" style="width:100%">Voir ma liste de courses →</button></div>`}`;
+  }
+
+  /* étape 2 : liste */
+  const d = DRIVES[state.settings.drive] || DRIVES.leclerc;
+  $('#shop-list').innerHTML = `
+    ${pending ? `<div class="notice">Il reste ${pending} ingrédient${pending > 1 ? 's' : ''} à vérifier à l'étape 1.</div>` : ''}
+    <form class="row" id="extra-form" style="margin-bottom:8px">
+      <input id="extra-name" class="grow" placeholder="Ajouter un article (lessive, café…)" style="width:auto">
+      <button class="primary" type="submit">Ajouter</button>
+    </form>
+    ${items.length ? `
+      <div class="actions">
+        ${driveHome() ? `<a class="btn small" href="${esc(driveHome())}" target="_blank" rel="noopener">🏬 Ouvrir ${esc(d.name)}</a>` : ''}
+        <button class="small" id="copy-list">📋 Copier</button>
+        ${navigator.share ? `<button class="small" id="share-list">📤 Partager</button>` : ''}
+        <button class="small ghost" id="clear-cart">Décocher tout</button>
+      </div>
+      <p class="small muted">Touche 🔍 pour chercher le produit sur ton drive, puis coche-le quand il est dans ton panier.</p>
+      ${groupByCat(items).map(([cat, list]) => `
+        <div class="cat-title">${cat}</div>
+        <div class="card" style="padding:4px 14px">
+          ${list.map(i => {
+            const url = driveUrl(i.name);
+            return `<div class="item ${state.cart[i.key] ? 'done' : ''}">
+              <input type="checkbox" data-cart="${esc(i.key)}" ${state.cart[i.key] ? 'checked' : ''} aria-label="Dans le panier : ${esc(i.name)}">
+              <div class="grow"><span class="name">${esc(i.name)}</span>${i.qty ? ` · <span class="qty">${esc(fmtQty(i.qty, i.unit))}</span>` : ''}</div>
+              ${url ? `<a class="btn small" href="${esc(url)}" target="_blank" rel="noopener" aria-label="Chercher ${esc(i.name)} sur le drive">🔍</a>` : ''}
+              ${i.extra ? `<button class="small ghost" data-del-extra="${i.id}" aria-label="Retirer">✕</button>` : ''}
+            </div>`;
+          }).join('')}
+        </div>`).join('')}`
+    : `<div class="empty">Ta liste est vide.</div>`}`;
+}
+
+function listAsText() {
+  const items = shoppingItems().filter(i => !state.cart[i.key]);
+  return 'Liste de courses\n' + groupByCat(items).map(([cat, list]) =>
+    `\n${cat}\n` + list.map(i => `- ${i.name}${i.qty ? ' : ' + fmtQty(i.qty, i.unit) : ''}`).join('\n')).join('\n');
+}
+
+$('#seg-check').onclick = () => { shopTab = 'check'; renderShop(); };
+$('#seg-list').onclick = () => { shopTab = 'list'; renderShop(); };
+
+$('#view-shop').addEventListener('click', async e => {
+  const t = e.target;
+  const chk = t.closest('[data-check]');
+  if (chk) {
+    const k = chk.dataset.check, v = chk.dataset.v;
+    state.checks[k] = v; save(); renderShop(); renderBadge(); return;
+  }
+  if (t.id === 'all-buy') {
+    computeNeeds().filter(i => !i.status).forEach(i => state.checks[i.key] = 'buy');
+    save(); renderShop(); renderBadge(); return;
+  }
+  if (t.id === 'reset-checks') { state.checks = {}; save(); renderShop(); renderBadge(); return; }
+  if (t.id === 'go-list') { shopTab = 'list'; renderShop(); window.scrollTo(0, 0); return; }
+  if (t.id === 'clear-cart') { state.cart = {}; save(); renderShop(); return; }
+  if (t.closest('[data-del-extra]')) {
+    const id = t.closest('[data-del-extra]').dataset.delExtra;
+    state.extras = state.extras.filter(x => x.id !== id); delete state.cart['x:' + id];
+    save(); renderShop(); return;
+  }
+  if (t.id === 'copy-list') {
+    try { await navigator.clipboard.writeText(listAsText()); toast('Liste copiée'); }
+    catch (err) { toast('Copie impossible sur cet appareil'); }
+    return;
+  }
+  if (t.id === 'share-list') {
+    try { await navigator.share({ title: 'Liste de courses', text: listAsText() }); } catch (err) { /* annulé */ }
+  }
+});
+
+$('#view-shop').addEventListener('change', e => {
+  const cb = e.target.closest('[data-cart]');
+  if (!cb) return;
+  if (cb.checked) state.cart[cb.dataset.cart] = true; else delete state.cart[cb.dataset.cart];
+  save(); renderShop();
+});
+
+$('#view-shop').addEventListener('submit', e => {
+  if (e.target.id !== 'extra-form') return;
+  e.preventDefault();
+  const name = $('#extra-name').value.trim();
+  if (!name) return;
+  const k = knownIngredients().get(norm(name));
+  state.extras.push({ id: uid(), name, cat: k?.cat || 'Autre' });
+  save(); renderShop();
+  $('#extra-name').focus();
+});
+
+function renderBadge() {
+  const pending = computeNeeds().filter(i => !i.status).length;
+  const b = $('#shop-badge');
+  b.hidden = !pending; b.textContent = pending;
+}
+
+/* ---------- réglages ---------- */
+function renderSettings() {
+  $('#drive-select').innerHTML = Object.entries(DRIVES).map(([k, v]) =>
+    `<option value="${k}" ${k === state.settings.drive ? 'selected' : ''}>${v.name}</option>`).join('');
+  $('#custom-drive-wrap').hidden = state.settings.drive !== 'custom';
+  $('#custom-drive').value = state.settings.customDrive || '';
+  $('#default-people').outerHTML = stepperHTML(state.settings.people, 'default').replace('<span class="stepper"', '<span class="stepper" id="default-people"');
+  $('#pantry-list').innerHTML = `
+    <div class="chips" style="margin-bottom:10px">${state.pantry.map((p, i) =>
+      `<button class="chip" aria-pressed="true" data-pantry-del="${i}">${esc(p)} ✕</button>`).join('') || '<span class="muted small">Aucun</span>'}</div>
+    <form class="row" id="pantry-form"><input id="pantry-name" class="grow" placeholder="Ex. : huile d'olive" list="pantry-names" style="width:auto"><button type="submit">Ajouter</button></form>
+    <datalist id="pantry-names">${[...knownIngredients().values()].map(i => `<option value="${esc(i.name)}">`).join('')}</datalist>`;
+}
+
+$('#drive-select').addEventListener('change', e => { state.settings.drive = e.target.value; save(); renderSettings(); renderShop(); });
+$('#custom-drive').addEventListener('change', e => { state.settings.customDrive = e.target.value.trim(); save(); renderShop(); });
+$('#view-settings').addEventListener('click', e => {
+  const del = e.target.closest('[data-pantry-del]');
+  if (del) { state.pantry.splice(+del.dataset.pantryDel, 1); save(); renderAll(); }
+});
+$('#view-settings').addEventListener('submit', e => {
+  if (e.target.id !== 'pantry-form') return;
+  e.preventDefault();
+  const v = $('#pantry-name').value.trim();
+  if (v && !state.pantry.map(norm).includes(norm(v))) state.pantry.push(v);
+  save(); renderAll();
+});
+
+$('#btn-export').onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `repas-semaine-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('#btn-import').onclick = () => $('#import-file').click();
+$('#import-file').onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (!Array.isArray(data.recipes)) throw new Error();
+    state = Object.assign(defaultState(), data);
+    save(); renderAll(); toast('Données importées');
+  } catch (err) { toast('Fichier invalide'); }
+  e.target.value = '';
+};
+$('#btn-reset').onclick = () => {
+  if (!confirm('Effacer toutes tes recettes, ton planning et tes réglages ?')) return;
+  state = defaultState(); save(); renderAll(); toast('Application réinitialisée');
+};
+
+/* ---------- navigation ---------- */
+const TITLES = {
+  plan: ['Planning de la semaine', 'Choisis tes repas, l\'appli prépare ta liste.'],
+  recipes: ['Mes recettes', 'Ajoute, modifie et consulte tes recettes.'],
+  shop: ['Courses', 'Vérifie ce que tu as, puis fais ton drive.'],
+  settings: ['Réglages', 'Drive, personnes, placard et sauvegarde.'],
+};
+function go(view) {
+  document.querySelectorAll('section.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + view));
+  document.querySelectorAll('nav.tabs button').forEach(b => b.toggleAttribute('aria-current', b.dataset.view === view));
+  document.querySelectorAll('nav.tabs button[aria-current]').forEach(b => b.setAttribute('aria-current', 'page'));
+  [$('#title').textContent, $('#subtitle').textContent] = TITLES[view];
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
+
+function renderAll() { renderPlan(); renderRecipes(); renderShop(); renderSettings(); renderBadge(); }
+renderAll();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
