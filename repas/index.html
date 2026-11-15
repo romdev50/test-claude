@@ -955,11 +955,15 @@ function renderShop() {
         ${navigator.share ? `<button class="small" id="share-list">📤 Partager</button>` : ''}
         <button class="small ghost" id="clear-cart">Décocher tout</button>
       </div>
-      ${state.settings.drive === 'intermarche' && items.some(i => !state.cart[i.key]) ? `
+      ${!items.some(i => !state.cart[i.key]) ? '' : state.settings.drive === 'intermarche' ? `
         <div class="card">
           <a class="btn primary" style="width:100%" href="${esc(autoFillUrl())}" target="_blank" rel="noopener">🤖 Remplir mon panier Intermarché</a>
           <p class="small muted" style="margin:8px 0 0">Ajoute automatiquement les ${items.filter(i => !state.cart[i.key]).length} articles non cochés. Nécessite l'extension Chrome « Repas de la semaine → panier Intermarché » sur ton ordinateur.</p>
-        </div>` : ''}
+        </div>` : `
+        <div class="card">
+          <p class="small" style="margin:0 0 8px"><b>🤖 Remplissage automatique du panier</b> : disponible avec Intermarché Drive (ton drive actuel : ${esc(d.name)}).</p>
+          <button class="small primary" id="use-intermarche">Utiliser Intermarché Drive</button>
+        </div>`}
       <p class="small muted">Touche 🔍 pour chercher le produit sur ton drive, puis coche-le quand il est dans ton panier.</p>
       ${groupByCat(items).map(([cat, list]) => `
         <div class="cat-title">${cat}</div>
@@ -1005,6 +1009,9 @@ $('#view-shop').addEventListener('click', async e => {
   }
   if (t.id === 'reset-checks') { state.checks = {}; save(); renderShop(); renderBadge(); return; }
   if (t.id === 'go-list') { shopTab = 'list'; renderShop(); window.scrollTo(0, 0); return; }
+  if (t.id === 'use-intermarche') {
+    state.settings.drive = 'intermarche'; save(); renderSettings(); renderShop(); toast('Drive : Intermarché'); return;
+  }
   if (t.id === 'clear-cart') { state.cart = {}; save(); renderShop(); return; }
   if (t.closest('[data-del-extra]')) {
     const id = t.closest('[data-del-extra]').dataset.delExtra;
