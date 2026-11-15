@@ -872,7 +872,8 @@ function computeNeeds() {
     ...x,
     qty: roundForBuying(x.qty, x.unit),
     inPantry: pantry.has(norm(x.name)),
-    status: pantry.has(norm(x.name)) ? (state.checks[x.key] || 'have') : state.checks[x.key],
+    // par défaut tout est à acheter, sauf ce qui est coché « J'ai déjà » (ou toujours au placard)
+    status: state.checks[x.key] || (pantry.has(norm(x.name)) ? 'have' : 'buy'),
   }));
 }
 
@@ -904,9 +905,9 @@ function driveHome() {
 let shopTab = 'check';
 function renderShop() {
   const needs = computeNeeds();
-  const pending = needs.filter(i => !i.status).length;
+  const haveCount = needs.filter(i => i.status === 'have').length;
 
-  $('#seg-check').textContent = `1. J'ai déjà ?${pending ? ` (${pending})` : ''}`;
+  $('#seg-check').textContent = `1. J'ai déjà ?${haveCount ? ` (${haveCount})` : ''}`;
   const items = shoppingItems();
   const remaining = items.filter(i => !state.cart[i.key]).length;
   $('#seg-list').textContent = `2. Ma liste (${remaining})`;
@@ -920,10 +921,9 @@ function renderShop() {
     $('#shop-check').innerHTML = `<div class="empty">Aucun repas planifié.<br>Va dans <b>Planning</b> pour choisir tes recettes.</div>`;
   } else {
     $('#shop-check').innerHTML = `
-      <div class="notice">Pour chaque ingrédient, indique si tu l'as déjà. Seuls ceux marqués <b>À acheter</b> iront dans ta liste.</div>
+      <div class="notice">Coche <b>J'ai déjà</b> pour ce que tu as. Tout le reste est ajouté automatiquement à ta liste de courses (${needs.length - haveCount} article${needs.length - haveCount > 1 ? 's' : ''}).</div>
       <div class="actions">
-        <button class="small" id="all-buy" ${pending ? '' : 'disabled'}>Le reste → À acheter</button>
-        <button class="small ghost" id="reset-checks">Tout redécider</button>
+        <button class="small ghost" id="reset-checks" ${haveCount ? '' : 'disabled'}>Tout décocher</button>
       </div>
       ${groupByCat(needs).map(([cat, list]) => `
         <div class="cat-title">${cat}</div>
@@ -934,18 +934,16 @@ function renderShop() {
               <div class="from">${esc([...i.from].join(', '))}${i.inPantry ? ' · 📌 toujours au placard' : ''}</div>
             </div>
             <div class="choice">
-              <button data-check="${esc(i.key)}" data-v="have" class="${i.status === 'have' ? 'on-have' : ''}" aria-pressed="${i.status === 'have'}">✓ J'ai</button>
-              <button data-check="${esc(i.key)}" data-v="buy" class="${i.status === 'buy' ? 'on-buy' : ''}" aria-pressed="${i.status === 'buy'}">🛒 Acheter</button>
+              <button data-check="${esc(i.key)}" data-v="${i.status === 'have' ? 'buy' : 'have'}" class="${i.status === 'have' ? 'on-have' : ''}" aria-pressed="${i.status === 'have'}">${i.status === 'have' ? '✓ J\'ai déjà' : 'J\'ai déjà ?'}</button>
             </div>
           </div>`).join('')}
         </div>`).join('')}
-      ${pending ? '' : `<div class="actions"><button class="primary" id="go-list" style="width:100%">Voir ma liste de courses →</button></div>`}`;
+      <div class="actions"><button class="primary" id="go-list" style="width:100%">Voir ma liste de courses →</button></div>`;
   }
 
   /* étape 2 : liste */
   const d = DRIVES[state.settings.drive] || DRIVES.leclerc;
   $('#shop-list').innerHTML = `
-    ${pending ? `<div class="notice">Il reste ${pending} ingrédient${pending > 1 ? 's' : ''} à vérifier à l'étape 1.</div>` : ''}
     <form class="row" id="extra-form" style="margin-bottom:8px">
       <input id="extra-name" class="grow" placeholder="Ajouter un article (lessive, café…)" style="width:auto">
       <button class="primary" type="submit">Ajouter</button>
@@ -990,10 +988,6 @@ $('#view-shop').addEventListener('click', async e => {
     const k = chk.dataset.check, v = chk.dataset.v;
     state.checks[k] = v; save(); renderShop(); renderBadge(); return;
   }
-  if (t.id === 'all-buy') {
-    computeNeeds().filter(i => !i.status).forEach(i => state.checks[i.key] = 'buy');
-    save(); renderShop(); renderBadge(); return;
-  }
   if (t.id === 'reset-checks') { state.checks = {}; save(); renderShop(); renderBadge(); return; }
   if (t.id === 'go-list') { shopTab = 'list'; renderShop(); window.scrollTo(0, 0); return; }
   if (t.id === 'clear-cart') { state.cart = {}; save(); renderShop(); return; }
@@ -1016,7 +1010,7 @@ $('#view-shop').addEventListener('change', e => {
   const cb = e.target.closest('[data-cart]');
   if (!cb) return;
   if (cb.checked) state.cart[cb.dataset.cart] = true; else delete state.cart[cb.dataset.cart];
-  save(); renderShop();
+  save(); renderShop(); renderBadge();
 });
 
 $('#view-shop').addEventListener('submit', e => {
@@ -1031,9 +1025,9 @@ $('#view-shop').addEventListener('submit', e => {
 });
 
 function renderBadge() {
-  const pending = computeNeeds().filter(i => !i.status).length;
+  const n = shoppingItems().filter(i => !state.cart[i.key]).length;
   const b = $('#shop-badge');
-  b.hidden = !pending; b.textContent = pending;
+  b.hidden = !n; b.textContent = n;
 }
 
 /* ---------- réglages ---------- */
