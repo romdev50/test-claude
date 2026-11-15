@@ -243,6 +243,7 @@
         <input type="search" id="recipe-search" class="grow" placeholder="Rechercher une recette…" style="width:auto">
         <button class="primary" id="btn-new-recipe">+ Nouvelle</button>
       </div>
+      <div class="chips" id="tag-filters" style="margin-bottom:12px"></div>
       <div id="recipe-list"></div>
     </section>
 
@@ -344,7 +345,7 @@ const DEFAULT_RECIPES = [
     ['crème fraîche', 20, 'cl', 'Crèmerie & œufs'], ['lait', 20, 'cl', 'Crèmerie & œufs'], ['gruyère râpé', 70, 'g', 'Crèmerie & œufs'],
     ['salade verte', 1, 'pièce', 'Fruits & légumes']],
     steps: 'Préchauffer le four à 200 °C.\nFaire dorer les lardons.\nBattre œufs, crème et lait, ajouter lardons et gruyère.\nVerser sur la pâte, cuire 35 min. Servir avec la salade.' },
-  { name: 'Salade niçoise', servings: 2, tags: ['rapide', 'été'], ingredients: [
+  { name: 'Salade niçoise', servings: 2, tags: ['poisson', 'rapide', 'été'], ingredients: [
     ['thon en boîte', 1, 'boîte', 'Épicerie'], ['tomates', 3, 'pièce', 'Fruits & légumes'], ['œufs', 2, 'pièce', 'Crèmerie & œufs'],
     ['haricots verts', 200, 'g', 'Fruits & légumes'], ['olives noires', 50, 'g', 'Épicerie'], ['salade verte', 1, 'pièce', 'Fruits & légumes'],
     ['huile d\'olive', 2, 'c. à soupe', 'Épicerie']],
@@ -354,15 +355,15 @@ const DEFAULT_RECIPES = [
     ['oignon', 1, 'pièce', 'Fruits & légumes'], ['poivron', 1, 'pièce', 'Fruits & légumes'], ['épices chili', 1, 'c. à soupe', 'Épicerie'],
     ['riz basmati', 250, 'g', 'Épicerie']],
     steps: 'Faire revenir oignon et poivron, puis la viande.\nAjouter tomates, haricots égouttés et épices.\nMijoter 30 min, servir avec le riz.' },
-  { name: 'Saumon, riz et brocolis', servings: 2, tags: ['léger'], ingredients: [
+  { name: 'Saumon, riz et brocolis', servings: 2, tags: ['poisson', 'léger'], ingredients: [
     ['pavé de saumon', 2, 'pièce', 'Boucherie & poisson'], ['riz basmati', 150, 'g', 'Épicerie'], ['brocoli', 1, 'pièce', 'Fruits & légumes'],
     ['citron', 1, 'pièce', 'Fruits & légumes']],
     steps: 'Cuire le riz et les brocolis à la vapeur.\nPoêler le saumon 4 min de chaque côté.\nArroser de citron.' },
-  { name: 'Soupe de légumes', servings: 4, tags: ['hiver', 'léger'], ingredients: [
+  { name: 'Soupe de légumes', servings: 4, tags: ['végétarien', 'hiver', 'léger'], ingredients: [
     ['pommes de terre', 400, 'g', 'Fruits & légumes'], ['carotte', 3, 'pièce', 'Fruits & légumes'], ['poireau', 2, 'pièce', 'Fruits & légumes'],
     ['oignon', 1, 'pièce', 'Fruits & légumes'], ['bouillon de légumes', 1, 'pièce', 'Épicerie'], ['pain', 1, 'pièce', 'Pain & boulangerie']],
     steps: 'Éplucher et couper les légumes.\nLes couvrir d\'eau avec le bouillon, cuire 30 min.\nMixer et servir avec du pain.' },
-  { name: 'Omelette et salade', servings: 2, tags: ['rapide'], ingredients: [
+  { name: 'Omelette et salade', servings: 2, tags: ['végétarien', 'rapide'], ingredients: [
     ['œufs', 4, 'pièce', 'Crèmerie & œufs'], ['champignons de Paris', 150, 'g', 'Fruits & légumes'], ['gruyère râpé', 40, 'g', 'Crèmerie & œufs'],
     ['salade verte', 1, 'pièce', 'Fruits & légumes'], ['beurre', 10, 'g', 'Crèmerie & œufs']],
     steps: 'Poêler les champignons au beurre.\nBattre les œufs, verser, ajouter le gruyère.\nServir avec la salade.' },
@@ -372,17 +373,155 @@ const DEFAULT_RECIPES = [
     steps: 'Préchauffer le four à 180 °C.\nCouper les pommes de terre en fines rondelles.\nFrotter le plat à l\'ail, alterner couches de pommes de terre et mélange lait-crème.\nCuire 1 h. Servir avec le jambon.' },
 ];
 
+/* Recettes supplémentaires (ajoutées aussi aux applis déjà utilisées) */
+const FL = 'Fruits & légumes', BP = 'Boucherie & poisson', CO = 'Crèmerie & œufs', EP = 'Épicerie', PB = 'Pain & boulangerie', SU = 'Surgelés';
+DEFAULT_RECIPES.push(
+  { name: "Lasagnes à la bolognaise", servings: 6, tags: ['four'], ingredients: [
+    ['feuilles de lasagne', 250, 'g', EP], ['bœuf haché', 500, 'g', BP], ['coulis de tomate', 700, 'g', EP], ['oignon', 1, 'pièce', FL],
+    ['ail', 1, 'gousse', FL], ['beurre', 50, 'g', CO], ['farine', 50, 'g', EP], ['lait', 50, 'cl', CO], ['gruyère râpé', 100, 'g', CO]],
+    steps: "Préparer une bolognaise : oignon, ail et viande revenus, puis coulis, 20 min.\nPréparer une béchamel avec beurre, farine et lait.\nAlterner feuilles, bolognaise et béchamel dans un plat.\nCouvrir de gruyère, cuire 40 min à 180 °C." },
+  { name: "Hachis parmentier", servings: 4, tags: ['four', 'hiver', 'enfants'], ingredients: [
+    ['pommes de terre', 1000, 'g', FL], ['bœuf haché', 500, 'g', BP], ['oignon', 1, 'pièce', FL], ['lait', 20, 'cl', CO],
+    ['beurre', 40, 'g', CO], ['gruyère râpé', 60, 'g', CO]],
+    steps: "Cuire les pommes de terre à l'eau, les écraser avec le lait et le beurre.\nFaire revenir l'oignon et la viande.\nMettre la viande au fond du plat, couvrir de purée et de gruyère.\nGratiner 20 min à 200 °C." },
+  { name: "Blanquette de veau", servings: 4, tags: ['mijoté', 'hiver'], ingredients: [
+    ['sauté de veau', 800, 'g', BP], ['carotte', 2, 'pièce', FL], ['oignon', 1, 'pièce', FL], ['champignons de Paris', 250, 'g', FL],
+    ['bouillon de volaille', 1, 'pièce', EP], ['crème fraîche', 20, 'cl', CO], ['jaune d\'œuf', 1, 'pièce', CO], ['citron', 1, 'pièce', FL],
+    ['riz basmati', 300, 'g', EP]],
+    steps: "Couvrir la viande d'eau avec le bouillon, la carotte et l'oignon, cuire 1 h 30 à feu doux.\nAjouter les champignons 15 min avant la fin.\nLier le bouillon avec la crème, le jaune d'œuf et le jus de citron.\nServir avec le riz." },
+  { name: "Bœuf bourguignon", servings: 6, tags: ['mijoté', 'hiver'], ingredients: [
+    ['bœuf à braiser', 1200, 'g', BP], ['lardons', 150, 'g', BP], ['vin rouge', 75, 'cl', 'Boissons'], ['carotte', 3, 'pièce', FL],
+    ['oignon', 2, 'pièce', FL], ['champignons de Paris', 250, 'g', FL], ['farine', 2, 'c. à soupe', EP], ['pâtes', 500, 'g', EP]],
+    steps: "Faire dorer la viande et les lardons, saupoudrer de farine.\nAjouter oignons, carottes et vin, compléter d'eau à hauteur.\nMijoter 2 h 30, ajouter les champignons 30 min avant la fin.\nServir avec des pâtes." },
+  { name: "Poulet rôti et pommes de terre", servings: 4, tags: ['four'], ingredients: [
+    ['poulet entier', 1, 'pièce', BP], ['pommes de terre', 1000, 'g', FL], ['ail', 4, 'gousse', FL], ['thym', 1, 'pièce', FL],
+    ['huile d\'olive', 3, 'c. à soupe', EP]],
+    steps: "Préchauffer le four à 210 °C.\nDisposer le poulet entouré des pommes de terre coupées, de l'ail et du thym.\nArroser d'huile, saler, poivrer.\nCuire 1 h 15 en arrosant de temps en temps." },
+  { name: "Croque-monsieur et salade", servings: 2, tags: ['rapide', 'enfants'], ingredients: [
+    ['pain de mie', 8, 'tranche', PB], ['jambon blanc', 4, 'tranche', BP], ['emmental en tranches', 4, 'tranche', CO],
+    ['beurre', 20, 'g', CO], ['salade verte', 1, 'pièce', FL]],
+    steps: "Beurrer le pain de mie, garnir de jambon et d'emmental.\nCuire 10 min au four à 200 °C ou à l'appareil à croque.\nServir avec la salade." },
+  { name: "Tartiflette", servings: 4, tags: ['four', 'hiver'], ingredients: [
+    ['pommes de terre', 1000, 'g', FL], ['reblochon', 1, 'pièce', CO], ['lardons', 200, 'g', BP], ['oignon', 2, 'pièce', FL],
+    ['crème fraîche', 20, 'cl', CO], ['salade verte', 1, 'pièce', FL]],
+    steps: "Cuire les pommes de terre à l'eau, les couper en rondelles.\nFaire revenir oignons et lardons.\nMélanger dans un plat avec la crème, poser le reblochon coupé en deux.\nCuire 25 min à 200 °C. Servir avec la salade." },
+  { name: "Risotto aux champignons", servings: 4, tags: ['végétarien'], ingredients: [
+    ['riz arborio', 300, 'g', EP], ['champignons de Paris', 400, 'g', FL], ['oignon', 1, 'pièce', FL], ['bouillon de légumes', 2, 'pièce', EP],
+    ['vin blanc', 10, 'cl', 'Boissons'], ['parmesan', 60, 'g', CO], ['beurre', 30, 'g', CO]],
+    steps: "Faire revenir l'oignon et les champignons dans le beurre.\nAjouter le riz, le nacrer 2 min, déglacer au vin blanc.\nVerser le bouillon chaud louche par louche pendant 18 min en remuant.\nHors du feu, ajouter le parmesan." },
+  { name: "Curry de lentilles corail", servings: 4, tags: ['végétarien', 'rapide'], ingredients: [
+    ['lentilles corail', 250, 'g', EP], ['lait de coco', 400, 'ml', EP], ['tomates concassées', 1, 'boîte', EP], ['oignon', 1, 'pièce', FL],
+    ['ail', 2, 'gousse', FL], ['curry en poudre', 2, 'c. à soupe', EP], ['riz basmati', 250, 'g', EP], ['coriandre', 1, 'pièce', FL]],
+    steps: "Faire revenir oignon, ail et curry.\nAjouter lentilles, tomates, lait de coco et 30 cl d'eau.\nCuire 20 min en remuant.\nServir avec le riz et la coriandre." },
+  { name: "Ratatouille et semoule", servings: 4, tags: ['végétarien', 'été'], ingredients: [
+    ['courgette', 2, 'pièce', FL], ['aubergine', 1, 'pièce', FL], ['poivron', 2, 'pièce', FL], ['tomates', 4, 'pièce', FL],
+    ['oignon', 1, 'pièce', FL], ['ail', 2, 'gousse', FL], ['huile d\'olive', 4, 'c. à soupe', EP], ['semoule', 250, 'g', EP]],
+    steps: "Couper tous les légumes en dés.\nLes faire revenir dans l'huile, oignon et ail en premier.\nCouvrir et mijoter 40 min.\nServir avec la semoule." },
+  { name: "Gratin de courgettes", servings: 4, tags: ['végétarien', 'four'], ingredients: [
+    ['courgette', 4, 'pièce', FL], ['œufs', 3, 'pièce', CO], ['crème fraîche', 20, 'cl', CO], ['gruyère râpé', 100, 'g', CO],
+    ['ail', 1, 'gousse', FL]],
+    steps: "Couper les courgettes en rondelles et les faire revenir 10 min avec l'ail.\nBattre œufs et crème, ajouter la moitié du gruyère.\nVerser sur les courgettes dans un plat, couvrir du reste de gruyère.\nCuire 30 min à 180 °C." },
+  { name: "Pâtes carbonara", servings: 4, tags: ['rapide'], ingredients: [
+    ['spaghettis', 400, 'g', EP], ['lardons', 200, 'g', BP], ['œufs', 3, 'pièce', CO], ['parmesan', 80, 'g', CO]],
+    steps: "Cuire les spaghettis.\nFaire dorer les lardons.\nBattre les œufs avec le parmesan.\nHors du feu, mélanger pâtes, lardons et œufs avec un peu d'eau de cuisson." },
+  { name: "Pâtes au pesto et tomates cerises", servings: 2, tags: ['végétarien', 'rapide', 'été'], ingredients: [
+    ['pâtes', 200, 'g', EP], ['pesto', 1, 'pièce', EP], ['tomates cerises', 250, 'g', FL], ['parmesan', 30, 'g', CO]],
+    steps: "Cuire les pâtes.\nCouper les tomates cerises en deux.\nMélanger pâtes, pesto et tomates, parsemer de parmesan." },
+  { name: "Cabillaud en papillote", servings: 4, tags: ['poisson', 'léger'], ingredients: [
+    ['dos de cabillaud', 4, 'pièce', BP], ['courgette', 2, 'pièce', FL], ['tomates cerises', 200, 'g', FL], ['citron', 1, 'pièce', FL],
+    ['huile d\'olive', 2, 'c. à soupe', EP], ['riz basmati', 250, 'g', EP]],
+    steps: "Préchauffer le four à 200 °C.\nSur du papier cuisson, poser courgette en lamelles, tomates et poisson.\nArroser d'huile et de citron, fermer les papillotes.\nCuire 20 min. Servir avec le riz." },
+  { name: "Moules-frites", servings: 4, tags: ['poisson'], ingredients: [
+    ['moules', 2, 'kg', BP], ['échalote', 2, 'pièce', FL], ['vin blanc', 20, 'cl', 'Boissons'], ['persil', 1, 'pièce', FL],
+    ['frites surgelées', 1000, 'g', SU], ['beurre', 30, 'g', CO]],
+    steps: "Gratter et rincer les moules.\nFaire fondre les échalotes dans le beurre, ajouter le vin et les moules.\nCouvrir et cuire 8 min jusqu'à ouverture, parsemer de persil.\nCuire les frites au four en même temps." },
+  { name: "Fajitas au poulet", servings: 4, tags: ['enfants', 'rapide'], ingredients: [
+    ['blanc de poulet', 500, 'g', BP], ['tortillas', 8, 'pièce', PB], ['poivron', 2, 'pièce', FL], ['oignon', 1, 'pièce', FL],
+    ['épices fajitas', 1, 'sachet', EP], ['crème fraîche', 20, 'cl', CO], ['cheddar râpé', 100, 'g', CO]],
+    steps: "Couper poulet, poivrons et oignon en lanières.\nLes faire sauter avec les épices 10 min.\nGarnir les tortillas chaudes avec la poêlée, la crème et le cheddar." },
+  { name: "Burgers maison", servings: 4, tags: ['enfants'], ingredients: [
+    ['pains à burger', 4, 'pièce', PB], ['steaks hachés', 4, 'pièce', BP], ['cheddar en tranches', 4, 'tranche', CO], ['tomates', 2, 'pièce', FL],
+    ['oignon rouge', 1, 'pièce', FL], ['salade verte', 1, 'pièce', FL], ['frites surgelées', 750, 'g', SU]],
+    steps: "Cuire les frites au four.\nCuire les steaks, poser le cheddar dessus en fin de cuisson.\nToaster les pains, garnir de salade, tomate, oignon et steak." },
+  { name: "Taboulé", servings: 4, tags: ['végétarien', 'été', 'rapide'], ingredients: [
+    ['semoule', 250, 'g', EP], ['tomates', 3, 'pièce', FL], ['concombre', 1, 'pièce', FL], ['menthe', 1, 'pièce', FL],
+    ['persil', 1, 'pièce', FL], ['citron', 2, 'pièce', FL], ['huile d\'olive', 4, 'c. à soupe', EP]],
+    steps: "Verser le jus des citrons et l'huile sur la semoule crue, mélanger.\nAjouter tomates et concombre en petits dés, herbes ciselées.\nLaisser gonfler 2 h au frais." },
+  { name: "Salade de pâtes au thon", servings: 4, tags: ['été', 'rapide'], ingredients: [
+    ['pâtes', 300, 'g', EP], ['thon en boîte', 2, 'boîte', EP], ['maïs', 1, 'boîte', EP], ['tomates cerises', 250, 'g', FL],
+    ['mayonnaise', 3, 'c. à soupe', EP]],
+    steps: "Cuire les pâtes, les refroidir.\nMélanger avec le thon émietté, le maïs, les tomates et la mayonnaise." },
+  { name: "Velouté de potiron", servings: 4, tags: ['végétarien', 'hiver', 'léger'], ingredients: [
+    ['potiron', 1000, 'g', FL], ['pommes de terre', 300, 'g', FL], ['oignon', 1, 'pièce', FL], ['bouillon de légumes', 1, 'pièce', EP],
+    ['crème fraîche', 10, 'cl', CO], ['pain', 1, 'pièce', PB]],
+    steps: "Couper potiron, pommes de terre et oignon en morceaux.\nCouvrir d'eau avec le bouillon, cuire 25 min.\nMixer avec la crème. Servir avec du pain." },
+  { name: "Wok de bœuf aux légumes", servings: 4, tags: ['rapide'], ingredients: [
+    ['bœuf à griller', 500, 'g', BP], ['nouilles chinoises', 250, 'g', EP], ['poivron', 1, 'pièce', FL], ['carotte', 2, 'pièce', FL],
+    ['oignon', 1, 'pièce', FL], ['sauce soja', 4, 'c. à soupe', EP], ['gingembre', 1, 'pièce', FL]],
+    steps: "Cuire les nouilles.\nFaire sauter le bœuf en lanières à feu vif, réserver.\nFaire sauter les légumes en julienne avec le gingembre.\nTout remettre dans le wok avec les nouilles et la sauce soja." },
+  { name: "Saucisses aux lentilles", servings: 4, tags: ['hiver', 'mijoté'], ingredients: [
+    ['saucisses de Morteau', 2, 'pièce', BP], ['lentilles vertes', 300, 'g', EP], ['carotte', 2, 'pièce', FL], ['oignon', 1, 'pièce', FL],
+    ['lardons', 100, 'g', BP]],
+    steps: "Faire revenir oignon et lardons.\nAjouter lentilles et carottes, couvrir d'eau.\nPoser les saucisses dessus et cuire 40 min à feu doux." },
+  { name: "Galettes complètes", servings: 4, tags: ['rapide'], ingredients: [
+    ['galettes de sarrasin', 4, 'pièce', CO], ['jambon blanc', 4, 'tranche', BP], ['œufs', 4, 'pièce', CO], ['emmental râpé', 120, 'g', CO],
+    ['beurre', 20, 'g', CO], ['salade verte', 1, 'pièce', FL]],
+    steps: "Chauffer une galette dans une poêle beurrée.\nGarnir d'emmental, de jambon et casser un œuf au centre.\nReplier les bords, cuire jusqu'à ce que le blanc soit pris." },
+  { name: "Pizza maison", servings: 4, tags: ['four', 'enfants'], ingredients: [
+    ['pâte à pizza', 2, 'pièce', CO], ['coulis de tomate', 200, 'g', EP], ['mozzarella', 2, 'pièce', CO], ['jambon blanc', 4, 'tranche', BP],
+    ['champignons de Paris', 200, 'g', FL], ['olives noires', 50, 'g', EP]],
+    steps: "Préchauffer le four à 240 °C.\nÉtaler les pâtes, napper de coulis.\nGarnir de jambon, champignons, mozzarella et olives.\nCuire 12 à 15 min." },
+  { name: "Couscous poulet-merguez", servings: 6, tags: ['mijoté'], ingredients: [
+    ['cuisses de poulet', 6, 'pièce', BP], ['merguez', 6, 'pièce', BP], ['semoule', 500, 'g', EP], ['carotte', 4, 'pièce', FL],
+    ['courgette', 3, 'pièce', FL], ['navet', 2, 'pièce', FL], ['pois chiches', 1, 'boîte', EP], ['épices couscous', 2, 'c. à soupe', EP],
+    ['tomates concassées', 1, 'boîte', EP]],
+    steps: "Faire dorer le poulet, ajouter les épices, les tomates et 1,5 l d'eau.\nAjouter carottes et navets, cuire 30 min, puis courgettes et pois chiches 20 min.\nGriller les merguez, préparer la semoule.\nServir le tout ensemble." },
+  { name: "Tarte tomate-moutarde", servings: 4, tags: ['végétarien', 'four', 'été'], ingredients: [
+    ['pâte brisée', 1, 'pièce', CO], ['tomates', 5, 'pièce', FL], ['moutarde', 3, 'c. à soupe', EP], ['emmental râpé', 80, 'g', CO],
+    ['herbes de Provence', 1, 'c. à café', EP], ['salade verte', 1, 'pièce', FL]],
+    steps: "Préchauffer le four à 200 °C.\nTartiner la pâte de moutarde, parsemer d'emmental.\nCouvrir de rondelles de tomates et d'herbes.\nCuire 35 min. Servir avec la salade." },
+  { name: "Poêlée de gnocchis", servings: 4, tags: ['végétarien', 'rapide'], ingredients: [
+    ['gnocchis', 800, 'g', CO], ['épinards frais', 200, 'g', FL], ['tomates cerises', 250, 'g', FL], ['mozzarella', 1, 'pièce', CO],
+    ['ail', 1, 'gousse', FL], ['huile d\'olive', 2, 'c. à soupe', EP]],
+    steps: "Faire dorer les gnocchis à la poêle dans l'huile 8 min.\nAjouter ail, tomates et épinards, cuire 3 min.\nParsemer de mozzarella en morceaux et servir." },
+  { name: "Filet mignon à la moutarde", servings: 4, tags: [], ingredients: [
+    ['filet mignon de porc', 1, 'pièce', BP], ['moutarde', 2, 'c. à soupe', EP], ['crème fraîche', 20, 'cl', CO], ['échalote', 2, 'pièce', FL],
+    ['haricots verts', 500, 'g', FL]],
+    steps: "Faire dorer le filet mignon sur toutes ses faces.\nAjouter les échalotes, puis la crème mélangée à la moutarde.\nCouvrir et cuire 25 min à feu doux.\nServir avec les haricots verts cuits à la vapeur." },
+  { name: "Pad thaï aux crevettes", servings: 4, tags: ['poisson'], ingredients: [
+    ['nouilles de riz', 250, 'g', EP], ['crevettes décortiquées', 300, 'g', BP], ['œufs', 2, 'pièce', CO], ['pousses de soja', 200, 'g', FL],
+    ['cacahuètes', 50, 'g', EP], ['sauce soja', 3, 'c. à soupe', EP], ['citron vert', 1, 'pièce', FL], ['coriandre', 1, 'pièce', FL]],
+    steps: "Réhydrater les nouilles dans l'eau chaude.\nFaire sauter les crevettes, pousser sur le côté et brouiller les œufs.\nAjouter nouilles, soja et sauce soja, mélanger 3 min.\nServir avec cacahuètes concassées, coriandre et citron vert." },
+  { name: "Gratin de pâtes au jambon", servings: 4, tags: ['four', 'enfants'], ingredients: [
+    ['pâtes', 400, 'g', EP], ['jambon blanc', 4, 'tranche', BP], ['crème fraîche', 20, 'cl', CO], ['lait', 10, 'cl', CO],
+    ['gruyère râpé', 120, 'g', CO]],
+    steps: "Cuire les pâtes al dente.\nMélanger avec le jambon en dés, la crème et le lait.\nVerser dans un plat, couvrir de gruyère.\nGratiner 20 min à 200 °C." },
+  { name: "Chili sin carne", servings: 4, tags: ['végétarien'], ingredients: [
+    ['haricots rouges', 2, 'boîte', EP], ['maïs', 1, 'boîte', EP], ['tomates concassées', 1, 'boîte', EP], ['poivron', 1, 'pièce', FL],
+    ['oignon', 1, 'pièce', FL], ['épices chili', 1, 'c. à soupe', EP], ['riz basmati', 250, 'g', EP]],
+    steps: "Faire revenir oignon et poivron.\nAjouter tomates, haricots, maïs et épices.\nMijoter 25 min. Servir avec le riz." },
+  { name: "Quiche saumon-poireaux", servings: 4, tags: ['poisson', 'four'], ingredients: [
+    ['pâte brisée', 1, 'pièce', CO], ['saumon fumé', 150, 'g', BP], ['poireau', 2, 'pièce', FL], ['œufs', 3, 'pièce', CO],
+    ['crème fraîche', 20, 'cl', CO], ['salade verte', 1, 'pièce', FL]],
+    steps: "Préchauffer le four à 200 °C.\nFaire fondre les poireaux émincés 15 min.\nBattre œufs et crème, ajouter poireaux et saumon en lanières.\nVerser sur la pâte, cuire 35 min." },
+);
+
 /* ---------- état ---------- */
 const STORE_KEY = 'repas-semaine-v1';
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+const FIRST_DEFAULTS = ['Pâtes à la bolognaise', 'Poulet au curry et riz', 'Quiche lorraine', 'Salade niçoise', 'Chili con carne',
+  'Saumon, riz et brocolis', 'Soupe de légumes', 'Omelette et salade', 'Gratin dauphinois et jambon'];
+const makeRecipe = r => ({
+  id: uid(), name: r.name, servings: r.servings, tags: r.tags.slice(), steps: r.steps,
+  ingredients: r.ingredients.map(([name, qty, unit, cat]) => ({ name, qty, unit, cat })),
+});
+
 function defaultState() {
   return {
+    seeded: DEFAULT_RECIPES.map(r => r.name),
     settings: { meals: { midi: true, soir: true }, days: [true, true, true, true, true, true, true], people: 2, drive: 'leclerc', customDrive: '' },
-    recipes: DEFAULT_RECIPES.map(r => ({
-      id: uid(), name: r.name, servings: r.servings, tags: r.tags, steps: r.steps,
-      ingredients: r.ingredients.map(([name, qty, unit, cat]) => ({ name, qty, unit, cat })),
-    })),
+    recipes: DEFAULT_RECIPES.map(makeRecipe),
     plan: {},       // "0-midi" -> { recipeId, people }
     checks: {},     // clé ingrédient -> 'have' | 'buy'
     pantry: ['sel', 'poivre'],
@@ -395,6 +534,7 @@ let state;
 try {
   state = JSON.parse(localStorage.getItem(STORE_KEY)) || defaultState();
 } catch (e) { state = defaultState(); }
+const hadSeeded = state && Array.isArray(state.seeded);
 state = Object.assign(defaultState(), state);
 
 function save() {
@@ -561,11 +701,17 @@ document.addEventListener('click', e => {
 });
 
 /* ---------- recettes ---------- */
+let tagFilter = '';
 function renderRecipes() {
   const q = norm($('#recipe-search').value);
+  const allTags = [...new Set(state.recipes.flatMap(r => r.tags || []))].sort((a, b) => a.localeCompare(b, 'fr'));
+  if (tagFilter && !allTags.includes(tagFilter)) tagFilter = '';
+  $('#tag-filters').innerHTML = [`<button class="chip" data-tag="" aria-pressed="${!tagFilter}">Toutes (${state.recipes.length})</button>`]
+    .concat(allTags.map(t => `<button class="chip" data-tag="${esc(t)}" aria-pressed="${tagFilter === t}">${esc(t)}</button>`)).join('');
   const usage = {};
   Object.values(state.plan).forEach(s => usage[s.recipeId] = (usage[s.recipeId] || 0) + 1);
   const list = state.recipes
+    .filter(r => !tagFilter || (r.tags || []).includes(tagFilter))
     .filter(r => !q || norm(r.name).includes(q) || r.ingredients.some(i => norm(i.name).includes(q)))
     .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
   $('#recipe-list').innerHTML = list.length ? list.map(r => `
@@ -581,6 +727,10 @@ function renderRecipes() {
 }
 
 $('#recipe-search').addEventListener('input', renderRecipes);
+$('#tag-filters').addEventListener('click', e => {
+  const b = e.target.closest('[data-tag]');
+  if (b) { tagFilter = b.dataset.tag; renderRecipes(); }
+});
 $('#recipe-list').addEventListener('click', e => {
   const el = e.target.closest('[data-recipe]');
   if (el) showRecipe(el.dataset.recipe);
@@ -969,6 +1119,18 @@ function go(view) {
 document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
 
 function renderAll() { renderPlan(); renderRecipes(); renderShop(); renderSettings(); renderBadge(); }
+// Ajoute les nouvelles recettes proposées, sans réintroduire celles que l'utilisateur a supprimées
+if (!hadSeeded) state.seeded = FIRST_DEFAULTS.slice();
+{
+  const names = new Set(state.recipes.map(r => norm(r.name)));
+  let added = 0;
+  DEFAULT_RECIPES.forEach(r => {
+    if (state.seeded.includes(r.name)) return;
+    state.seeded.push(r.name);
+    if (!names.has(norm(r.name))) { state.recipes.push(makeRecipe(r)); added++; }
+  });
+  if (added) { save(); setTimeout(() => toast(`${added} nouvelles recettes ajoutées`), 400); }
+}
 renderAll();
 
 if ('serviceWorker' in navigator) {
