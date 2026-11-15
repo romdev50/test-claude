@@ -955,7 +955,10 @@ function renderShop() {
         ${navigator.share ? `<button class="small" id="share-list">📤 Partager</button>` : ''}
         <button class="small ghost" id="clear-cart">Décocher tout</button>
       </div>
-      ${!items.some(i => !state.cart[i.key]) ? '' : state.settings.drive === 'intermarche' ? `
+      ${!items.some(i => !state.cart[i.key]) ? '' : state.settings.drive === 'intermarche' && IS_MOBILE ? `
+        <div class="card">
+          <p class="small" style="margin:0"><b>🤖 Remplissage automatique du panier</b> : à lancer depuis ton ordinateur (Chrome ou Edge avec l'extension), en ouvrant cette même page. Sur téléphone, utilise les boutons 🔍 pour chercher chaque produit.</p>
+        </div>` : state.settings.drive === 'intermarche' ? `
         <div class="card">
           <a class="btn primary" style="width:100%" href="${esc(autoFillUrl())}" target="_blank" rel="noopener">🤖 Remplir mon panier Intermarché</a>
           <p class="small muted" style="margin:8px 0 0">Ajoute automatiquement les ${items.filter(i => !state.cart[i.key]).length} articles non cochés. Nécessite l'extension Chrome « Repas de la semaine → panier Intermarché » sur ton ordinateur.</p>
@@ -980,6 +983,10 @@ function renderShop() {
         </div>`).join('')}`
     : `<div class="empty">Ta liste est vide.</div>`}`;
 }
+
+// Téléphone ou tablette : les extensions Chrome n'y fonctionnent pas
+const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+  || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
 
 // Adresse qui transmet la liste à l'extension Chrome (dans le #, jamais envoyé au site)
 function autoFillUrl() {
