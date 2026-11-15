@@ -23,9 +23,11 @@
       --card: #ffffff;
       --line: #e3ddd3;
       --shadow: 0 1px 2px rgba(0,0,0,.06);
+      --danger: #c0392b;
+      --overlay: rgba(0,0,0,.45);
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --bg: #14191b;
         --text: #eef1f2;
         --muted: #9aa8ac;
@@ -36,7 +38,21 @@
         --card: #1d2427;
         --line: #2c3539;
         --shadow: none;
+        color-scheme: dark;
       }
+    }
+    :root[data-theme="dark"] {
+        --bg: #14191b;
+        --text: #eef1f2;
+        --muted: #9aa8ac;
+        --accent: #f07a4f;
+        --accent-soft: #3a2620;
+        --ok: #5cc28a;
+        --ok-soft: #1d3327;
+        --card: #1d2427;
+        --line: #2c3539;
+        --shadow: none;
+      color-scheme: dark;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
@@ -56,7 +72,8 @@
     }
     header.top h1 { margin: 0; font-size: 1.25rem; }
     header.top p { margin: 2px 0 0; color: var(--muted); font-size: .85rem; }
-    main { max-width: 760px; margin: 0 auto; padding: 16px; }
+    main { max-width: 760px; margin: 0 auto; padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     section.view { display: none; }
     section.view.active { display: block; }
 
@@ -91,7 +108,7 @@
     }
     button.primary, .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
     button.ghost { background: transparent; }
-    button.danger { color: #c0392b; }
+    button.danger { color: var(--danger); }
     button.small, .btn.small { padding: 5px 10px; min-height: 32px; font-size: .85rem; }
     button:disabled { opacity: .5; cursor: default; }
 
@@ -179,7 +196,7 @@
       max-height: calc(100dvh - 32px);
       background: var(--card); color: var(--text);
     }
-    dialog::backdrop { background: rgba(0,0,0,.45); }
+    dialog::backdrop { background: var(--overlay); }
     dialog .dlg-head { position: sticky; top: 0; background: var(--card); padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; z-index: 1; }
     dialog .dlg-head h3 { margin: 0; font-size: 1.05rem; }
     dialog .dlg-body { padding: 16px; }
@@ -265,7 +282,9 @@
         <p class="small muted">Tes données restent sur ce téléphone. Exporte-les pour les transférer sur un autre appareil.</p>
         <div class="actions">
           <button id="btn-export">⬇️ Exporter</button>
-          <button id="btn-import">⬆️ Importer</button>
+          <button id="btn-copy-data">📋 Copier les données</button>
+          <button id="btn-import">⬆️ Importer un fichier</button>
+          <button id="btn-paste-data">📥 Coller des données</button>
           <input type="file" id="import-file" accept="application/json" hidden>
           <button id="btn-reset" class="danger ghost">Tout réinitialiser</button>
         </div>
@@ -281,6 +300,13 @@
   </nav>
 
   <dialog id="dlg"></dialog>
+  <dialog id="confirm-dlg">
+    <div class="dlg-body"><p id="confirm-msg" style="margin:0"></p></div>
+    <div class="dlg-foot">
+      <button class="ghost" id="confirm-no">Annuler</button>
+      <button class="primary" id="confirm-yes">Confirmer</button>
+    </div>
+  </dialog>
   <div class="toast" id="toast"></div>
 
 <script>
@@ -396,6 +422,27 @@ function roundForBuying(q, unit) {
   return Math.round(q * 10) / 10;
 }
 
+function ask(message, okLabel = 'Confirmer') {
+  const d = $('#confirm-dlg');
+  $('#confirm-msg').textContent = message;
+  $('#confirm-yes').textContent = okLabel;
+  return new Promise(resolve => {
+    const done = v => { d.close(); $('#confirm-yes').onclick = $('#confirm-no').onclick = null; resolve(v); };
+    $('#confirm-yes').onclick = () => done(true);
+    $('#confirm-no').onclick = () => done(false);
+    d.oncancel = () => done(false);
+    d.showModal();
+  });
+}
+
+// Copie dans le presse-papiers ; si c'est refusé, affiche le texte à copier à la main
+async function copyText(text, okMsg) {
+  try { await navigator.clipboard.writeText(text); toast(okMsg); return; } catch (e) { /* repli ci-dessous */ }
+  openDialog(`<div class="dlg-head"><h3>Copier</h3><button class="ghost small" data-close aria-label="Fermer">✕</button></div>
+    <div class="dlg-body"><p class="small muted">Sélectionne le texte puis copie-le.</p><textarea id="copy-area" style="min-height:260px" readonly></textarea></div>`);
+  const ta = $('#copy-area'); ta.value = text; ta.focus(); ta.select();
+}
+
 let toastTimer;
 function toast(msg) {
   const t = $('#toast');
@@ -484,8 +531,8 @@ $('#btn-random').addEventListener('click', () => {
   save(); renderAll(); toast(`${slots.length} repas ajoutés`);
 });
 
-$('#btn-clear-plan').addEventListener('click', () => {
-  if (!confirm('Vider le planning et la liste de courses de la semaine ?')) return;
+$('#btn-clear-plan').addEventListener('click', async () => {
+  if (!await ask('Vider le planning et la liste de courses de la semaine ?', 'Vider')) return;
   state.plan = {}; state.checks = {}; state.cart = {}; state.extras = [];
   save(); renderAll();
 });
@@ -571,8 +618,8 @@ function showRecipe(id) {
     const copy = JSON.parse(JSON.stringify(r)); copy.id = uid(); copy.name += ' (copie)';
     state.recipes.push(copy); save(); renderAll(); editRecipe(copy.id);
   };
-  $('#r-del').onclick = () => {
-    if (!confirm(`Supprimer « ${r.name} » ?`)) return;
+  $('#r-del').onclick = async () => {
+    if (!await ask(`Supprimer « ${r.name} » ?`, 'Supprimer')) return;
     state.recipes = state.recipes.filter(x => x.id !== id);
     Object.keys(state.plan).forEach(k => { if (state.plan[k].recipeId === id) delete state.plan[k]; });
     save(); dlg.close(); renderAll();
@@ -806,12 +853,12 @@ $('#view-shop').addEventListener('click', async e => {
     save(); renderShop(); return;
   }
   if (t.id === 'copy-list') {
-    try { await navigator.clipboard.writeText(listAsText()); toast('Liste copiée'); }
-    catch (err) { toast('Copie impossible sur cet appareil'); }
+    await copyText(listAsText(), 'Liste copiée');
     return;
   }
   if (t.id === 'share-list') {
-    try { await navigator.share({ title: 'Liste de courses', text: listAsText() }); } catch (err) { /* annulé */ }
+    try { await navigator.share({ title: 'Liste de courses', text: listAsText() }); }
+    catch (err) { if (err.name !== 'AbortError') await copyText(listAsText(), 'Partage indisponible : liste copiée'); }
   }
 });
 
@@ -875,6 +922,19 @@ $('#btn-export').onclick = () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
+$('#btn-copy-data').onclick = () => copyText(JSON.stringify(state), 'Données copiées');
+$('#btn-paste-data').onclick = () => {
+  openDialog(`<div class="dlg-head"><h3>Coller des données</h3><button class="ghost small" data-close aria-label="Fermer">✕</button></div>
+    <div class="dlg-body"><p class="small muted">Colle ici le texte obtenu avec « Copier les données » sur un autre appareil.</p><textarea id="paste-area" style="min-height:200px"></textarea></div>
+    <div class="dlg-foot"><button class="ghost" data-close>Annuler</button><button class="primary" id="paste-ok">Importer</button></div>`);
+  $('#paste-ok').onclick = () => {
+    try {
+      const data = JSON.parse($('#paste-area').value);
+      if (!Array.isArray(data.recipes)) throw new Error();
+      state = Object.assign(defaultState(), data); save(); dlg.close(); renderAll(); toast('Données importées');
+    } catch (err) { toast('Texte invalide : colle tout le contenu copié'); }
+  };
+};
 $('#btn-import').onclick = () => $('#import-file').click();
 $('#import-file').onchange = async e => {
   const f = e.target.files[0];
@@ -887,8 +947,8 @@ $('#import-file').onchange = async e => {
   } catch (err) { toast('Fichier invalide'); }
   e.target.value = '';
 };
-$('#btn-reset').onclick = () => {
-  if (!confirm('Effacer toutes tes recettes, ton planning et tes réglages ?')) return;
+$('#btn-reset').onclick = async () => {
+  if (!await ask('Effacer toutes tes recettes, ton planning et tes réglages ?', 'Tout effacer')) return;
   state = defaultState(); save(); renderAll(); toast('Application réinitialisée');
 };
 
