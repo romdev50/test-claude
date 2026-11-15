@@ -21,3 +21,10 @@ Pour l'installer sur un téléphone : ouvrir la page puis « Ajouter à l'écran
 Le dossier `repas/extension-intermarche/` contient une extension Chrome/Edge qui ajoute au panier
 Intermarché Drive tous les articles non cochés « J'ai déjà ». Installation et utilisation :
 voir `repas/extension-intermarche/LISEZMOI.md` (le zip prêt à installer est `repas/extension-intermarche.zip`).
+
+### Remplissage du panier Intermarché depuis un smartphone
+
+`repas/panier-mobile.js` est un favori (bookmarklet) à lancer sur intermarche.com : on y colle la
+liste copiée depuis l'appli, et chaque article est ajouté au panier. Son code est recopié dans
+`repas/index.html` (bloc `<script type="text/plain" id="bm-src">`) : après toute modification de
+`panier-mobile.js`, recopier ce bloc. L'appli explique l'installation (Courses → Ma liste → Installer le favori).
