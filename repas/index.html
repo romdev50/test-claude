@@ -955,6 +955,11 @@ function renderShop() {
         ${navigator.share ? `<button class="small" id="share-list">📤 Partager</button>` : ''}
         <button class="small ghost" id="clear-cart">Décocher tout</button>
       </div>
+      ${state.settings.drive === 'intermarche' && items.some(i => !state.cart[i.key]) ? `
+        <div class="card">
+          <a class="btn primary" style="width:100%" href="${esc(autoFillUrl())}" target="_blank" rel="noopener">🤖 Remplir mon panier Intermarché</a>
+          <p class="small muted" style="margin:8px 0 0">Ajoute automatiquement les ${items.filter(i => !state.cart[i.key]).length} articles non cochés. Nécessite l'extension Chrome « Repas de la semaine → panier Intermarché » sur ton ordinateur.</p>
+        </div>` : ''}
       <p class="small muted">Touche 🔍 pour chercher le produit sur ton drive, puis coche-le quand il est dans ton panier.</p>
       ${groupByCat(items).map(([cat, list]) => `
         <div class="cat-title">${cat}</div>
@@ -970,6 +975,16 @@ function renderShop() {
           }).join('')}
         </div>`).join('')}`
     : `<div class="empty">Ta liste est vide.</div>`}`;
+}
+
+// Adresse qui transmet la liste à l'extension Chrome (dans le #, jamais envoyé au site)
+function autoFillUrl() {
+  const items = shoppingItems().filter(i => !state.cart[i.key]).map(i => ({ n: i.name, q: i.qty ? fmtQty(i.qty, i.unit) : '' }));
+  const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, items }));
+  let bin = '';
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  const b64 = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return 'https://www.intermarche.com/#repas=' + b64;
 }
 
 function listAsText() {

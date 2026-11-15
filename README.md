@@ -15,3 +15,9 @@ Application web installable (PWA), utilisable sur smartphone, pour :
 
 Les données sont enregistrées dans le navigateur de l'appareil (aucun compte requis).
 Pour l'installer sur un téléphone : ouvrir la page puis « Ajouter à l'écran d'accueil ».
+
+### Remplissage automatique du panier Intermarché
+
+Le dossier `repas/extension-intermarche/` contient une extension Chrome/Edge qui ajoute au panier
+Intermarché Drive tous les articles non cochés « J'ai déjà ». Installation et utilisation :
+voir `repas/extension-intermarche/LISEZMOI.md` (le zip prêt à installer est `repas/extension-intermarche.zip`).
